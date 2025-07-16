@@ -427,6 +427,20 @@ def handle_streaming_response(text, current_user):
     try:
         print(f"[AdvancedResponse] 🎭 Starting ADVANCED AI streaming for: '{text}'")
         
+        # ⚡ PERFORMANCE OPTIMIZATION: Fast-path routing for simple questions
+        fast_response = _handle_fast_path_questions(text, current_user)
+        if fast_response:
+            speak_streaming(fast_response)
+            print(f"[AdvancedResponse] ⚡ FAST PATH: Answered in <1 second")
+            return
+        
+        # ⚡ PERFORMANCE OPTIMIZATION: Skip expensive voice processing for simple questions  
+        if _is_simple_question(text):
+            print(f"[AdvancedResponse] ⚡ SIMPLE QUESTION: Skipping voice processing")
+            # Proceed directly to LLM without voice identification overhead
+            _handle_direct_llm_response(text, current_user)
+            return
+        
         # ✅ NEW: Get voice-based identity FIRST (overrides system login)
         voice_identified_user = None
         try:
@@ -749,6 +763,93 @@ def get_voice_based_name_response(identified_user, display_name):
     except Exception as e:
         print(f"[VoiceIdentity] ❌ Name response error: {e}")
         return "I'm having trouble with voice recognition right now. Could you tell me your name?"
+
+# ⚡ PERFORMANCE OPTIMIZATION: Fast-path routing helpers
+def _handle_fast_path_questions(text: str, current_user: str) -> Optional[str]:
+    """Handle questions that can be answered immediately without LLM processing"""
+    
+    text_lower = text.lower().strip()
+    
+    # Direct time questions
+    if is_direct_time_question(text):
+        brisbane_time = get_current_brisbane_time()
+        return f"It's {brisbane_time['time_12h']} here in Birtinya, Sunshine Coast."
+    
+    # Direct location questions  
+    if is_direct_location_question(text):
+        return f"I'm located in Birtinya, Sunshine Coast, Queensland 4575."
+    
+    # Direct date questions
+    if is_direct_date_question(text):
+        brisbane_time = get_current_brisbane_time()
+        return f"Today is {brisbane_time['date']}."
+    
+    # Simple greeting responses
+    simple_greetings = {
+        'hello': "Hello there!",
+        'hi': "Hi!",
+        'hey': "Hey!",
+        'good morning': "Good morning!",
+        'good afternoon': "Good afternoon!",
+        'good evening': "Good evening!",
+    }
+    
+    for greeting, response in simple_greetings.items():
+        if text_lower == greeting or text_lower == greeting + "!":
+            return response
+    
+    return None
+
+def _is_simple_question(text: str) -> bool:
+    """Check if this is a simple question that doesn't need voice processing overhead"""
+    
+    text_lower = text.lower().strip()
+    
+    # Questions that don't require complex voice analysis
+    simple_patterns = [
+        r'^what\'?s\s+the\s+weather',
+        r'^how\s+are\s+you',
+        r'^what\'?s\s+up',
+        r'^how\'?s\s+it\s+going',
+        r'^tell\s+me\s+about',
+        r'^what\s+do\s+you\s+think\s+about',
+        r'^can\s+you\s+help',
+        r'^what\s+can\s+you\s+do',
+        r'^who\s+are\s+you\s+today',
+    ]
+    
+    for pattern in simple_patterns:
+        if re.search(pattern, text_lower):
+            return True
+    
+    return False
+
+def _handle_direct_llm_response(text: str, current_user: str) -> None:
+    """Handle LLM response without voice processing overhead"""
+    
+    print(f"[AdvancedResponse] ⚡ DIRECT LLM: Bypassing voice processing for simple question")
+    
+    try:
+        from ai.chat_enhanced_smart_with_fusion import generate_response_streaming_with_intelligent_fusion
+        
+        full_response = ""
+        chunk_count = 0
+        
+        # Process LLM chunks directly
+        for chunk in generate_response_streaming_with_intelligent_fusion(text, current_user, DEFAULT_LANG):
+            if chunk and chunk.strip():
+                chunk_count += 1
+                chunk_text = chunk.strip()
+                speak_streaming(chunk_text)
+                full_response += chunk_text + " "
+        
+        if full_response.strip():
+            add_to_conversation_history(current_user, text, full_response.strip())
+            print(f"[AdvancedResponse] ⚡ DIRECT LLM complete: {chunk_count} chunks")
+        
+    except Exception as e:
+        print(f"[AdvancedResponse] ❌ Direct LLM error: {e}")
+        speak_streaming("I apologize, I had trouble processing that question.")
 
 def is_direct_time_question(text):
     """🧠 SMART: Only detect DIRECT time questions, not contextual usage"""

@@ -197,9 +197,16 @@ Respond with ONLY the extracted name or "NONE". No explanations, no other text.
 <|im_end|>"""
 
     def extract_name(self, text: str) -> Optional[str]:
-        """🤖 Use KoboldCPP + Hermes-2-Pro to extract name"""
+        """🤖 Use KoboldCPP + Hermes-2-Pro to extract name with smart pre-filtering"""
         
         print(f"[KoboldExtractor] 🤖 Analyzing: '{text}'")
+        
+        # ⚡ PERFORMANCE OPTIMIZATION: Smart pre-filtering before expensive LLM call
+        if not self._has_name_introduction_patterns(text):
+            print(f"[KoboldExtractor] ⚡ SKIPPED: No name introduction patterns detected")
+            return None
+        
+        print(f"[KoboldExtractor] ✅ Name patterns detected, proceeding with LLM analysis")
         
         try:
             prompt = f"""{self.system_prompt}
@@ -256,6 +263,53 @@ Is this person introducing themselves by stating their own name? Extract the nam
         except Exception as e:
             print(f"[KoboldExtractor] ❌ Error: {e}")
             return None
+    
+    def _has_name_introduction_patterns(self, text: str) -> bool:
+        """⚡ PERFORMANCE OPTIMIZATION: Fast pre-filtering for name introduction patterns"""
+        
+        text_lower = text.lower().strip()
+        
+        # Quick patterns that indicate name introduction
+        name_introduction_patterns = [
+            r'\bmy\s+name\s+is\s+\w+',
+            r'\bcall\s+me\s+\w+', 
+            r'\bi\'?m\s+\w+(?:\s*,|\s*$|\s+by\s+the\s+way)',
+            r'\bhello.*i\'?m\s+\w+',
+            r'\bhi.*i\'?m\s+\w+',
+            r'\bthis\s+is\s+\w+',
+            r'\bi\s+am\s+\w+',
+            r'\bpeople\s+call\s+me\s+\w+',
+            r'\beveryone\s+calls\s+me\s+\w+',
+            r'\bthey\s+call\s+me\s+\w+',
+            r'\byou\s+can\s+call\s+me\s+\w+',
+        ]
+        
+        # Quick rejection patterns that definitely aren't name introductions
+        rejection_patterns = [
+            r'\bi\'?m\s+(doing|going|working|feeling|thinking|being|having|getting)',
+            r'\bi\'?m\s+(fine|good|great|okay|well|bad|tired|busy|ready|here|there)',
+            r'\bi\'?m\s+(just|really|very|quite|pretty|still|currently|already)\s+\w+',
+            r'\bwho\s+are\s+you',
+            r'\bwhat\s+time\s+is\s+it',
+            r'\bwhere\s+are\s+you',
+            r'\bhow\s+are\s+you',
+            r'\bwhat\'?s\s+the\s+weather',
+        ]
+        
+        # First check rejection patterns (fast exit)
+        for pattern in rejection_patterns:
+            if re.search(pattern, text_lower):
+                print(f"[KoboldExtractor] ⚡ FAST REJECT: Pattern '{pattern}' matched")
+                return False
+        
+        # Then check positive patterns
+        for pattern in name_introduction_patterns:
+            if re.search(pattern, text_lower):
+                print(f"[KoboldExtractor] ⚡ PATTERN MATCH: '{pattern}' detected")
+                return True
+        
+        print(f"[KoboldExtractor] ⚡ NO NAME PATTERNS: Text likely not an introduction")
+        return False
     
     def _clean_hermes_response(self, response: str) -> Optional[str]:
         """🔒 FOOL-PROOF response cleaning with strict validation"""

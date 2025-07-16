@@ -550,6 +550,42 @@ AUDIO_SMOOTHING = True                        # Smooth audio transitions
 SPEECH_ENHANCEMENT = True                     # Enhanced speech clarity
 NATURAL_INTONATION = True                     # Natural speech intonation
 
+# ⚡ ==== PERFORMANCE OPTIMIZATION SETTINGS ====
+# Fix for unnecessary LLM processing causing 55+ second delays
+PERFORMANCE_OPTIMIZATION_ENABLED = True        # ✅ NEW: Enable performance optimizations
+
+# Smart name extraction pre-filtering
+NAME_EXTRACTION_PREFILTERING = True           # ✅ NEW: Pre-filter before expensive LLM calls
+NAME_PATTERN_CACHE_SIZE = 100                 # ✅ NEW: Cache recent pattern analysis results
+NAME_EXTRACTION_TIMEOUT = 5                   # ✅ NEW: Timeout for name extraction LLM calls
+
+# Identity analysis gating 
+IDENTITY_ANALYSIS_GATING = True               # ✅ NEW: Only run when user is unidentified
+IDENTITY_CACHE_DURATION = 300                # ✅ NEW: Cache identity analysis for 5 minutes
+SKIP_ANALYSIS_FOR_KNOWN_USERS = True         # ✅ NEW: Skip analysis for identified users
+
+# Fast-path routing
+FAST_PATH_ROUTING_ENABLED = True              # ✅ NEW: Direct answers for simple questions
+SIMPLE_QUESTION_DETECTION = True             # ✅ NEW: Detect questions that don't need voice processing
+BYPASS_VOICE_FOR_SIMPLE_QUERIES = True       # ✅ NEW: Skip voice processing overhead
+
+# Duplicate processing prevention
+DUPLICATE_PREVENTION_ENABLED = True          # ✅ NEW: Prevent duplicate LLM calls
+RESULT_CACHING_ENABLED = True                # ✅ NEW: Cache LLM results
+PROCESSING_DEDUPLICATION = True              # ✅ NEW: Deduplicate identical requests
+
+# Performance monitoring
+PERFORMANCE_MONITORING = True                # ✅ NEW: Monitor response times
+LOG_PERFORMANCE_IMPROVEMENTS = True          # ✅ NEW: Log time saved by optimizations
+PERFORMANCE_STATISTICS = True               # ✅ NEW: Track optimization statistics
+
+print(f"[Config] ⚡ PERFORMANCE OPTIMIZATIONS:")
+print(f"  🎯 Name Extraction Pre-filtering: {NAME_EXTRACTION_PREFILTERING}")
+print(f"  🔍 Identity Analysis Gating: {IDENTITY_ANALYSIS_GATING}")
+print(f"  🚀 Fast-path Routing: {FAST_PATH_ROUTING_ENABLED}")
+print(f"  🛡️ Duplicate Prevention: {DUPLICATE_PREVENTION_ENABLED}")
+print(f"  📊 Performance Monitoring: {PERFORMANCE_MONITORING}")
+
 # 🚀 ==== ADVANCED AI ASSISTANT SYSTEM ====
 ADVANCED_AI_ASSISTANT = True                   # ✅ NEW: Enable advanced AI assistant
 ALEXA_SIRI_LEVEL_INTELLIGENCE = True          # ✅ NEW: Alexa/Siri-level features
