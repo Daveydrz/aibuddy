@@ -13,6 +13,11 @@ def get_smart_memory(username: str) -> SmartHumanLikeMemory:
         smart_memories[username] = SmartHumanLikeMemory(username)
     return smart_memories[username]
 
+def reset_session_for_user_smart(username: str):
+    """Reset session when conversation starts"""
+    memory = get_smart_memory(username)
+    memory.reset_session_context()
+
 def generate_response_streaming_with_intelligent_fusion(question: str, username: str, lang="en"):
     """🧠 Generate response with intelligent memory fusion and smart memory + PERSONALITY"""
     
@@ -82,4 +87,4 @@ def generate_response_streaming_with_intelligent_fusion(question: str, username:
         yield chunk
 
 # Export for main.py
-__all__ = ['generate_response_streaming_with_intelligent_fusion']
+__all__ = ['generate_response_streaming_with_intelligent_fusion', 'reset_session_for_user_smart']

@@ -17,8 +17,7 @@ from datetime import datetime  # ✅ ADD THIS IMPORT
 from scipy.io.wavfile import write
 from voice.database import load_known_users, known_users, save_known_users, anonymous_clusters
 from ai.memory import validate_ai_response_appropriateness, add_to_conversation_history
-from ai.chat_enhanced_smart import generate_response_streaming_with_smart_memory, reset_session_for_user_smart
-from ai.chat_enhanced_smart_with_fusion import generate_response_streaming_with_intelligent_fusion
+from ai.chat_enhanced_smart_with_fusion import generate_response_streaming_with_intelligent_fusion, reset_session_for_user_smart
 
 from voice.voice_manager_instance import voice_manager
 from voice.manager_names import UltraIntelligentNameManager
@@ -44,6 +43,7 @@ except Exception as e:
 # ✅ FIXED: Force correct voice manager import
 ADVANCED_AI_AVAILABLE = False
 ENHANCED_VOICE_AVAILABLE = False
+DISABLE_VOICE_FALLBACKS = True  # Performance optimization: disable fallbacks when advanced systems work
 
 try:
     # Always load database first
@@ -273,7 +273,7 @@ except ImportError as e:
         print("[AdvancedBuddy] 🧹 clear_audio_queue fallback - queue clearing disabled")
         pass
 
-from ai.chat import generate_response  # Keep for fallback
+# Removed: from ai.chat import generate_response  # Eliminated fallback for performance
 from ai.memory import add_to_conversation_history
 from voice.database import load_known_users, known_users, anonymous_clusters
 from voice.recognition import identify_speaker
@@ -584,41 +584,9 @@ def handle_streaming_response(text, current_user):
             response_interrupted = True
             
         except ImportError:
-            print("[AdvancedResponse] ⚠️ Advanced streaming not available, using enhanced fallback")
-            response = generate_response(text, current_user, DEFAULT_LANG)
-            
-            # 🧠 MEGA-INTELLIGENT: Validate complete response before speaking
-            try:
-                is_appropriate, validated_response = validate_ai_response_appropriateness(current_user, response)
-                
-                if not is_appropriate:
-                    print(f"[MegaMemory] 🛡️ Fallback response corrected for context appropriateness")
-                    response = validated_response
-            except Exception as validation_error:
-                print(f"[MegaMemory] ⚠️ Validation error for fallback response: {validation_error}")
-                # Continue with original response if validation fails
-            
-            # Split into sentences for interrupt checking
-            sentences = re.split(r'(?<=[.!?])\s+', response)
-            for sentence in sentences:
-                if sentence.strip():
-                    # ✅ Check for interrupt before each sentence
-                    if full_duplex_manager and full_duplex_manager.speech_interrupted:
-                        print("[AdvancedResponse] ⚡ INTERRUPT IN FALLBACK - STOPPING")
-                        response_interrupted = True
-                        break  # ✅ CRITICAL: Break immediately!
-                    
-                    speak_streaming(sentence.strip())
-                    
-                    # ✅ Check again after queueing
-                    if full_duplex_manager and full_duplex_manager.speech_interrupted:
-                        print("[AdvancedResponse] ⚡ INTERRUPT AFTER FALLBACK SENTENCE - STOPPING")
-                        response_interrupted = True
-                        break  # ✅ CRITICAL: Break immediately!
-                    
-                    time.sleep(0.1)
-            
-            full_response = response
+            print("[AdvancedResponse] ❌ Advanced streaming unavailable - this indicates a configuration problem")
+            speak_streaming("I'm having trouble with my advanced AI systems. Please check my configuration.")
+            response_interrupted = True
         
         # ✅ HANDLE COMPLETION: Only if not interrupted
         if not response_interrupted:
@@ -1093,6 +1061,10 @@ def handle_full_duplex_conversation():
                         print(f"[AdvancedAI] 🔍 Status: '{status}', User: '{identified_user}'")
                         print(f"[AdvancedAI] 🛡️ LLM locked: {voice_manager.is_llm_locked() if hasattr(voice_manager, 'is_llm_locked') else False}")
                         
+                        # ✅ PERFORMANCE: Skip fallbacks when advanced system is working
+                        if DISABLE_VOICE_FALLBACKS and status not in ["ERROR", "FAILED", "UNKNOWN"]:
+                            print(f"[AdvancedAI] ⚡ Performance mode: Skipping fallbacks, advanced system working")
+                        
                         # ✅ CRITICAL DATABASE SYNC FIX (NON-DESTRUCTIVE)
                         try:
                             print("[AdvancedAI] 🔄 Syncing voice manager to database...")
@@ -1212,7 +1184,7 @@ def handle_full_duplex_conversation():
                         # Fallback to basic processing
                         voice_recognition_in_progress = False
                 
-                elif ENHANCED_VOICE_AVAILABLE:
+                elif ENHANCED_VOICE_AVAILABLE and not (DISABLE_VOICE_FALLBACKS and ADVANCED_AI_AVAILABLE):
                     # Enhanced voice processing
                     try:
                         identified_user, status = voice_manager.handle_voice_identification(audio_data, text)
@@ -1256,8 +1228,8 @@ def handle_full_duplex_conversation():
                         traceback.print_exc()
                         voice_recognition_in_progress = False
                 
-                else:
-                    # ✅ BASIC VOICE RECOGNITION - ACTUALLY PROCESS VOICE! (FIXED!)
+                elif not (DISABLE_VOICE_FALLBACKS and (ADVANCED_AI_AVAILABLE or ENHANCED_VOICE_AVAILABLE)):
+                    # ✅ BASIC VOICE RECOGNITION - Only if fallbacks enabled or no advanced systems
                     print(f"[FullDuplex] 🔄 Using basic voice system with ACTUAL voice recognition")
                     
                     try:
@@ -1342,6 +1314,10 @@ def handle_full_duplex_conversation():
                             print(f"[BasicVoice] ❌ Emergency creation failed: {emergency_error}")
                             # Last resort - just continue with existing user
                             print(f"[BasicVoice] 🆘 Continuing with existing user: {current_user}")
+                
+                else:
+                    # ✅ PERFORMANCE: No voice processing due to optimization flags
+                    print(f"[FullDuplex] ⚡ Performance mode: Skipping voice processing, using existing user: {current_user}")
                 
                 # ✅ CRITICAL: Manual sync check for Advanced AI (NON-DESTRUCTIVE)
                 if ADVANCED_AI_AVAILABLE:
