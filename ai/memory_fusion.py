@@ -345,9 +345,22 @@ class MemoryUnificationEngine:
 memory_fusion_engine = MemoryUnificationEngine()
 
 def auto_detect_and_unify_memories(current_username: str) -> str:
-    """Automatically detect and unify similar user memories"""
+    """Automatically detect and unify similar user memories with smart gating"""
     
     print(f"[MemoryFusion] 🔍 Checking for similar users to {current_username}")
+    
+    # ⚡ PERFORMANCE OPTIMIZATION: Skip analysis for already identified users
+    if _is_user_already_identified(current_username):
+        print(f"[MemoryFusion] ⚡ SKIPPED: User {current_username} already identified")
+        return current_username
+    
+    # ⚡ PERFORMANCE OPTIMIZATION: Check cache first
+    cached_result = _get_cached_analysis_result(current_username)
+    if cached_result:
+        print(f"[MemoryFusion] ⚡ CACHED: Using cached result for {current_username}")
+        return cached_result
+    
+    print(f"[MemoryFusion] ✅ Proceeding with identity analysis for {current_username}")
     
     # Check if already mapped
     mapping_key = f"mapping_{current_username}"
@@ -356,6 +369,8 @@ def auto_detect_and_unify_memories(current_username: str) -> str:
         if cluster_id in memory_fusion_engine.analyzer.clusters:
             primary = memory_fusion_engine.analyzer.clusters[cluster_id]["primary_username"]
             print(f"[MemoryFusion] 🔗 {current_username} already mapped to {primary}")
+            # Cache this result
+            _cache_analysis_result(current_username, primary)
             return primary
     
     # Find similar users
@@ -370,11 +385,56 @@ def auto_detect_and_unify_memories(current_username: str) -> str:
         # Unify memories
         if memory_fusion_engine.unify_memories(current_username, usernames_to_merge):
             print(f"[MemoryFusion] 🚀 Memory unification complete for {current_username}!")
+            # Cache this result
+            _cache_analysis_result(current_username, current_username)
             return current_username
     else:
         print(f"[MemoryFusion] ℹ️ No similar users found for {current_username}")
     
+    # Cache negative result
+    _cache_analysis_result(current_username, current_username)
     return current_username
+
+# ⚡ PERFORMANCE OPTIMIZATION: Cache for identity analysis results
+_identity_analysis_cache = {}
+
+def _is_user_already_identified(username: str) -> bool:
+    """Check if user is already identified and doesn't need analysis"""
+    
+    # Known named users (not anonymous)
+    if username and not username.startswith('Anonymous_') and not username.startswith('Guest_'):
+        # Check if it's a real name, not a system identifier
+        if username not in ['Unknown', 'UNKNOWN', 'Guest']:
+            return True
+    
+    return False
+
+def _get_cached_analysis_result(username: str) -> Optional[str]:
+    """Get cached analysis result if available and still valid"""
+    
+    if username in _identity_analysis_cache:
+        cache_entry = _identity_analysis_cache[username]
+        
+        # Check if cache entry is still valid (within 5 minutes)
+        import time
+        if time.time() - cache_entry['timestamp'] < 300:
+            print(f"[MemoryFusion] ⚡ CACHE HIT: {username} -> {cache_entry['result']}")
+            return cache_entry['result']
+        else:
+            # Remove expired cache entry
+            del _identity_analysis_cache[username]
+    
+    return None
+
+def _cache_analysis_result(username: str, result: str) -> None:
+    """Cache analysis result for future use"""
+    
+    import time
+    _identity_analysis_cache[username] = {
+        'result': result,
+        'timestamp': time.time()
+    }
+    print(f"[MemoryFusion] 💾 CACHED: {username} -> {result}")
 
 def get_unified_username(original_username: str) -> str:
     """Get the unified username for memory operations"""

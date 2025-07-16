@@ -1,0 +1,44 @@
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# AI Buddy specific cache files
+buddy_precise_location_cache.json
+
+# Voice profiles and audio data
+voice_profiles/
+*.wav
+*.mp3
+*.ogg
+
+# Model files
+*.onnx
+*.bin
+models/
+
+# Log files
+*.log
+voice_debug.json
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*~
