@@ -1,0 +1,26 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test files
+test_*.py
+
+# Temporary files
+*.tmp
+*.temp
+
+# Voice recognition temporary files
+voice_debug.json
+
+# Memory temporary files
+memory/*/temp_*
+
+# Audio temporary files
+*.wav
+*.mp3
+temp_audio_*
+
+# Log files
+*.log
+debug_*.json
