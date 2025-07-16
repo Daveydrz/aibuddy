@@ -1418,6 +1418,22 @@ class UltraIntelligentNameManager:
         self.introduction_style_preferences = {}
         self.name_change_history = []
         self.false_positive_learning = []
+        
+        # ✅ PERFORMANCE OPTIMIZATION: Pre-filtering patterns
+        self.name_introduction_patterns = [
+            r'\bmy\s+name\s+is\s+\w+',
+            r'\bcall\s+me\s+\w+',
+            r'\bi\'?m\s+\w+(?:\s*,|\s*$|\s+by\s+the\s+way)(?!\s+(?:fine|good|ready|busy|tired|working|here|there|doing|going))',
+            r'\bi\s+am\s+\w+',
+            r'\bthis\s+is\s+\w+',
+            r'\bpeople\s+call\s+me\s+\w+',
+            r'\beveryone\s+calls\s+me\s+\w+',
+            r'\bjust\s+call\s+me\s+\w+',
+            r'\byou\s+can\s+call\s+me\s+\w+',
+            r'\bhello.*(?:i\'?m|my\s+name\s+is)\s+\w+',
+            r'\bhi.*(?:i\'?m|my\s+name\s+is)\s+\w+',
+            r'\bnice\s+to\s+meet.*(?:i\'?m|my\s+name\s+is)\s+\w+'
+        ]
 
         # 🔥 NEW: Personal name management
         self.phoneme_analyzer = PhonemeAnalyzer()
@@ -2957,6 +2973,37 @@ class UltraIntelligentNameManager:
             print(f"[UltraIntelligentNameManager] ❌ Error getting existing users: {e}")
         
         return existing_users
+    
+    # ===== PERFORMANCE OPTIMIZATION METHODS =====
+    
+    def has_name_introduction_pattern(self, text: str) -> bool:
+        """🚀 PERFORMANCE: Fast pre-filtering - check if text contains name introduction patterns"""
+        if not text or len(text.strip()) < 5:
+            return False
+        
+        text_lower = text.lower().strip()
+        
+        # Quick pattern check without expensive LLM processing
+        for pattern in self.name_introduction_patterns:
+            if re.search(pattern, text_lower):
+                return True
+        
+        return False
+    
+    def extract_name_ultra_smart(self, text: str, context: Dict) -> Optional[str]:
+        """🚀 PERFORMANCE OPTIMIZED: Extract name with pre-filtering"""
+        
+        # ✅ PERFORMANCE: Fast pre-filter - skip LLM if no name patterns
+        if not self.has_name_introduction_pattern(text):
+            print(f"[UltraIntelligentNameManager] ⚡ FAST SKIP: No name introduction patterns detected")
+            return None
+        
+        print(f"[UltraIntelligentNameManager] 🎯 NAME PATTERN DETECTED: Processing with LLM")
+        
+        # Only run expensive LLM processing if patterns detected
+        return self.extract_name_mega_intelligent(text)
+        
+    # ===== END PERFORMANCE OPTIMIZATION METHODS =====
         
     def _ultra_strict_name_validation(self, name: str, text_lower: str) -> bool:
         """🛡️ ENHANCED Ultra-strict name validation with MEGA-COMPREHENSIVE blacklist"""

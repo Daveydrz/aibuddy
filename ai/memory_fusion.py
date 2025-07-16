@@ -2,6 +2,7 @@
 import json
 import os
 import shutil
+import time
 from datetime import datetime
 from typing import Dict, List, Set, Tuple, Optional
 from pathlib import Path
@@ -16,6 +17,34 @@ class MemoryClusterAnalyzer:
         self.memory_base_dir = Path("memory")
         self.cluster_file = self.memory_base_dir / "user_clusters.json"
         self.load_existing_clusters()
+        
+        # ✅ PERFORMANCE OPTIMIZATION: Known user patterns
+        self.known_user_patterns = [
+            r'^[A-Za-z][A-Za-z0-9_-]+$',  # Valid username pattern
+            r'^(?!Anonymous_\d{3}$)',      # Not anonymous pattern
+            r'^(?!Unknown|Guest|friend)$'  # Not generic names
+        ]
+        
+        # ✅ PERFORMANCE OPTIMIZATION: Result caching to prevent duplicate analysis
+        self.similarity_cache = {}
+        self.analysis_cache = {}
+        self.cache_ttl = 300  # 5 minutes cache TTL
+    
+    def is_user_identified(self, username: str) -> bool:
+        """🚀 PERFORMANCE: Fast check if user is already identified (skip expensive analysis)"""
+        if not username:
+            return False
+            
+        # Anonymous users need analysis
+        if username.startswith('Anonymous_') or username in ['Unknown', 'Guest', 'friend']:
+            return False
+            
+        # Real usernames are considered identified
+        if len(username) >= 3 and username.replace('_', '').replace('-', '').isalnum():
+            print(f"[MemoryFusion] ⚡ FAST SKIP: {username} already identified")
+            return True
+            
+        return False
     
     def load_existing_clusters(self):
         """Load known user clusters"""
@@ -33,6 +62,25 @@ class MemoryClusterAnalyzer:
     
     def analyze_user_similarity(self, user1: str, user2: str) -> float:
         """Calculate similarity between two users based on multiple factors"""
+        
+        # ✅ PERFORMANCE: Check cache first to avoid duplicate processing
+        cache_key = f"{user1}:{user2}" if user1 < user2 else f"{user2}:{user1}"
+        
+        if cache_key in self.similarity_cache:
+            cached_result = self.similarity_cache[cache_key]
+            cache_time = cached_result.get('timestamp', 0)
+            current_time = time.time()
+            
+            if current_time - cache_time < self.cache_ttl:
+                print(f"[MemoryFusion] ⚡ CACHE HIT: Using cached similarity for {user1} ↔ {user2}")
+                return cached_result['similarity']
+        
+        # ✅ PERFORMANCE: Fast check if both users are already identified (skip analysis)
+        if self.is_user_identified(user1) and self.is_user_identified(user2):
+            print(f"[MemoryFusion] ⚡ FAST SKIP: Both users identified, no analysis needed")
+            similarity = 0.0  # No need to merge identified users
+            self._cache_similarity(cache_key, similarity)
+            return similarity
         
         similarity_factors = []
         
@@ -57,7 +105,17 @@ class MemoryClusterAnalyzer:
             for factor_name, score, weight in similarity_factors:
                 print(f"  {factor_name}: {score:.2f} (weight: {weight})")
         
+        # ✅ PERFORMANCE: Cache the result
+        self._cache_similarity(cache_key, weighted_score)
+        
         return weighted_score
+    
+    def _cache_similarity(self, cache_key: str, similarity: float):
+        """Cache similarity result to prevent duplicate processing"""
+        self.similarity_cache[cache_key] = {
+            'similarity': similarity,
+            'timestamp': time.time()
+        }
     
     def _calculate_username_similarity(self, user1: str, user2: str) -> float:
         """Detect username patterns (Anonymous_001, Anonymous_002, etc.)"""
@@ -348,6 +406,11 @@ def auto_detect_and_unify_memories(current_username: str) -> str:
     """Automatically detect and unify similar user memories"""
     
     print(f"[MemoryFusion] 🔍 Checking for similar users to {current_username}")
+    
+    # ✅ PERFORMANCE: Fast skip for already identified users
+    if memory_fusion_engine.analyzer.is_user_identified(current_username):
+        print(f"[MemoryFusion] ⚡ FAST SKIP: {current_username} already identified, no fusion needed")
+        return current_username
     
     # Check if already mapped
     mapping_key = f"mapping_{current_username}"

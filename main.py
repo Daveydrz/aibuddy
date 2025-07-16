@@ -474,28 +474,43 @@ def handle_streaming_response(text, current_user):
 
         print(f"[VoiceIdentity] ✅ FINAL USER for LLM: {current_user}")
         
-        # ✅ Process user identification and name management
-        try:
-            from ai.speech import identify_user, get_display_name
-            
-            # Check if user is introducing themselves
-            identify_user(text, current_user)
-            
-            # Get display name for responses (voice-based, not system)
-            display_name = get_voice_based_display_name(current_user)
-            
-            # Handle name questions using VOICE MATCHING (not system login)
-            if any(phrase in text.lower() for phrase in ["what's my name", "my name", "who am i", "what is my name"]):
-                voice_response = get_voice_based_name_response(current_user, display_name)
-                speak_streaming(voice_response)
-                return
+        # ✅ PERFORMANCE OPTIMIZATION: Fast-path routing for simple questions
+        if is_simple_question(text):
+            print(f"[AdvancedResponse] ⚡ FAST PATH: Simple question detected, skipping identity processing")
+            # Skip expensive identity processing for simple questions
+            pass  # Continue to quick responses below
+        elif is_user_already_identified(current_user):
+            print(f"[AdvancedResponse] ⚡ FAST SKIP: User {current_user} already identified, skipping identity analysis")
+            # Skip expensive identity analysis for known users
+            pass  # Continue to LLM response
+        else:
+            # ✅ Process user identification and name management (only for unidentified users)
+            try:
+                from ai.speech import identify_user, get_display_name
                 
-        except ImportError:
-            print(f"[AdvancedResponse] ⚠️ Speech identification not available")
+                # Only run expensive name extraction if text has introduction patterns
+                if has_name_introduction_patterns(text):
+                    print(f"[AdvancedResponse] 🎯 NAME PATTERN DETECTED: Running identification")
+                    identify_user(text, current_user)
+                else:
+                    print(f"[AdvancedResponse] ⚡ FAST SKIP: No name introduction patterns detected")
+                
+            except ImportError:
+                print(f"[AdvancedResponse] ⚠️ Speech identification not available")
+            except Exception as id_error:
+                print(f"[AdvancedResponse] ⚠️ Identification error: {id_error}")
+        
+        # Get display name for responses (always needed)
+        try:
             display_name = get_voice_based_display_name(current_user)
-        except Exception as id_error:
-            print(f"[AdvancedResponse] ⚠️ Identification error: {id_error}")
-            display_name = get_voice_based_display_name(current_user)
+        except:
+            display_name = current_user
+        
+        # Handle name questions using VOICE MATCHING (not system login)
+        if any(phrase in text.lower() for phrase in ["what's my name", "my name", "who am i", "what is my name"]):
+            voice_response = get_voice_based_name_response(current_user, display_name)
+            speak_streaming(voice_response)
+            return
         
         # ✅ ADVANCED: Check if LLM is locked by voice processing
         if ADVANCED_AI_AVAILABLE and hasattr(voice_manager, 'is_llm_locked'):
@@ -2051,6 +2066,85 @@ def main():
                     pass
     
     print("[AdvancedBuddy] ✅ ADVANCED AI ASSISTANT cleanup complete!")
+
+# ===== PERFORMANCE OPTIMIZATION HELPER FUNCTIONS =====
+
+def is_simple_question(text: str) -> bool:
+    """🚀 PERFORMANCE: Check if text is a simple question that doesn't need identity processing"""
+    if not text:
+        return False
+    
+    text_lower = text.lower().strip()
+    
+    # Import simple question patterns from config
+    try:
+        from config import SIMPLE_QUESTION_PATTERNS, FAST_PATH_ROUTING
+        if not FAST_PATH_ROUTING:
+            return False
+            
+        for pattern in SIMPLE_QUESTION_PATTERNS:
+            if re.search(pattern, text_lower):
+                return True
+    except ImportError:
+        # Fallback patterns if config not available
+        simple_patterns = [
+            r'^(?:who\s+are\s+you|what\s+are\s+you|how\s+are\s+you)',
+            r'^(?:what\s+time|what\'s\s+the\s+time|current\s+time)',
+            r'^(?:what\s+date|what\'s\s+the\s+date|today\'s\s+date)',
+            r'^(?:where\s+are\s+you|what\'s\s+your\s+location)',
+            r'^(?:how\s+are\s+things|what\'s\s+up|how\'s\s+it\s+going)'
+        ]
+        for pattern in simple_patterns:
+            if re.search(pattern, text_lower):
+                return True
+    
+    return False
+
+def is_user_already_identified(username: str) -> bool:
+    """🚀 PERFORMANCE: Check if user is already identified (skip expensive identity analysis)"""
+    if not username:
+        return False
+    
+    # Anonymous users need analysis
+    if username.startswith('Anonymous_') or username in ['Unknown', 'Guest', 'friend', 'Anonymous_Speaker']:
+        return False
+    
+    # Real usernames with reasonable length are considered identified
+    if len(username) >= 3 and username.replace('_', '').replace('-', '').isalnum():
+        return True
+    
+    return False
+
+def has_name_introduction_patterns(text: str) -> bool:
+    """🚀 PERFORMANCE: Check if text contains name introduction patterns before expensive LLM processing"""
+    if not text or len(text.strip()) < 5:
+        return False
+    
+    text_lower = text.lower().strip()
+    
+    # Pre-filtering patterns for name introductions
+    name_patterns = [
+        r'\bmy\s+name\s+is\s+\w+',
+        r'\bcall\s+me\s+\w+',
+        r'\bi\'?m\s+\w+(?:\s*,|\s*$|\s+by\s+the\s+way)(?!\s+(?:fine|good|ready|busy|tired|working|here|there|doing|going))',
+        r'\bi\s+am\s+\w+',
+        r'\bthis\s+is\s+\w+',
+        r'\bpeople\s+call\s+me\s+\w+',
+        r'\beveryone\s+calls\s+me\s+\w+',
+        r'\bjust\s+call\s+me\s+\w+',
+        r'\byou\s+can\s+call\s+me\s+\w+',
+        r'\bhello.*(?:i\'?m|my\s+name\s+is)\s+\w+',
+        r'\bhi.*(?:i\'?m|my\s+name\s+is)\s+\w+',
+        r'\bnice\s+to\s+meet.*(?:i\'?m|my\s+name\s+is)\s+\w+'
+    ]
+    
+    for pattern in name_patterns:
+        if re.search(pattern, text_lower):
+            return True
+    
+    return False
+
+# ===== END PERFORMANCE OPTIMIZATION FUNCTIONS =====
 
 if __name__ == "__main__":
     main()
