@@ -445,6 +445,25 @@ AUTOMATIC_NAME_EXTRACTION = True                # Auto-extract names from speech
 TRAINING_OFFER_TIMEOUT = 30                     # Seconds to wait for training response
 PASSIVE_TRAINING_TIMEOUT = 300                  # Seconds for passive training session
 
+# ==== PERFORMANCE OPTIMIZATION SETTINGS ====
+PERFORMANCE_OPTIMIZATION_ENABLED = True         # ✅ NEW: Enable performance optimizations
+SMART_NAME_EXTRACTION_PREFILTERING = True      # ✅ NEW: Pre-filter before expensive LLM calls
+INTELLIGENT_IDENTITY_ANALYSIS_GATING = True    # ✅ NEW: Skip identity analysis for known users
+RESULT_CACHING_ENABLED = True                  # ✅ NEW: Cache results to prevent duplicate processing
+FAST_PATH_ROUTING = True                       # ✅ NEW: Fast-path routing for simple questions
+
+# ✅ PERFORMANCE OPTIMIZATION THRESHOLDS
+NAME_EXTRACTION_SKIP_SIMPLE_QUESTIONS = True   # Skip name extraction for simple questions
+IDENTITY_ANALYSIS_CACHE_TTL = 300              # Cache identity analysis for 5 minutes
+SIMILARITY_CACHE_TTL = 300                     # Cache similarity analysis for 5 minutes
+SIMPLE_QUESTION_PATTERNS = [                   # Patterns for fast-path routing
+    r'^(?:who\s+are\s+you|what\s+are\s+you|how\s+are\s+you)',
+    r'^(?:what\s+time|what\'s\s+the\s+time|current\s+time)',
+    r'^(?:what\s+date|what\'s\s+the\s+date|today\'s\s+date)',
+    r'^(?:where\s+are\s+you|what\'s\s+your\s+location)',
+    r'^(?:how\s+are\s+things|what\'s\s+up|how\'s\s+it\s+going)'
+]
+
 # ==== MEMORY SYSTEM SETTINGS ====
 MEMORY_EXTRACTION_ENABLED = True
 MEMORY_DEBUG = True
