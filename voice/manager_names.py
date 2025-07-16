@@ -1423,7 +1423,7 @@ class UltraIntelligentNameManager:
         self.name_introduction_patterns = [
             r'\bmy\s+name\s+is\s+\w+',
             r'\bcall\s+me\s+\w+',
-            r'\bi\'?m\s+\w+(?:\s*,|\s*$|\s+by\s+the\s+way)(?!\s+(?:fine|good|ready|busy|tired|working|here|there|doing|going))',
+            r'\bi\'?m\s+(?!(?:fine|good|ready|busy|tired|working|here|there|doing|going|just|really|very|quite|pretty)\b)\w+(?:\s*,|\s*$|\s+by\s+the\s+way)',
             r'\bi\s+am\s+\w+',
             r'\bthis\s+is\s+\w+',
             r'\bpeople\s+call\s+me\s+\w+',

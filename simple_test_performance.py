@@ -56,7 +56,6 @@ def has_name_introduction_patterns(text):
     name_patterns = [
         r'\bmy\s+name\s+is\s+\w+',
         r'\bcall\s+me\s+\w+',
-        r'\bi\'?m\s+\w+(?:\s*,|\s*$|\s+by\s+the\s+way)',
         r'\bi\s+am\s+\w+',
         r'\bthis\s+is\s+\w+',
         r'\bpeople\s+call\s+me\s+\w+',
@@ -65,7 +64,9 @@ def has_name_introduction_patterns(text):
         r'\byou\s+can\s+call\s+me\s+\w+',
         r'\bhello.*(?:i\'?m|my\s+name\s+is)\s+\w+',
         r'\bhi.*(?:i\'?m|my\s+name\s+is)\s+\w+',
-        r'\bnice\s+to\s+meet.*(?:i\'?m|my\s+name\s+is)\s+\w+'
+        r'\bnice\s+to\s+meet.*(?:i\'?m|my\s+name\s+is)\s+\w+',
+        # Special pattern for "I'm [name]" - check if it's NOT a state/activity word
+        r'\bi\'?m\s+(?!(?:fine|good|ready|busy|tired|working|here|there|doing|going|just|really|very|quite|pretty)\b)\w+(?:\s*,|\s*$|\s+by\s+the\s+way)',
     ]
     
     for pattern in name_patterns:
